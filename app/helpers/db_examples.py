@@ -1,4 +1,3 @@
-"""Example usage of database query executor."""
 from app.helpers.db_executor import query_executor
 
 

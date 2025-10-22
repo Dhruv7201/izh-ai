@@ -1,4 +1,3 @@
-"""Tests for health check routes."""
 import pytest
 from unittest.mock import patch, AsyncMock
 

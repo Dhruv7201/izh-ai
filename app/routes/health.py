@@ -1,4 +1,3 @@
-"""Health check routes."""
 from fastapi import APIRouter
 
 from app.config.database import db_config

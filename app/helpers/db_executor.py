@@ -1,4 +1,3 @@
-"""Database query executor - raw SQL without ORM."""
 from typing import Any, Optional, List, Dict
 import asyncpg
 import logging

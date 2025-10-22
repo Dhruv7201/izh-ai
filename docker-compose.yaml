@@ -35,7 +35,7 @@ services:
     environment:
       - PORT=8000
       - DEBUG=true
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-your_key_here}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-key}
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres

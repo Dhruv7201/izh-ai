@@ -1,4 +1,3 @@
-"""Redis cache helper for caching operations."""
 import json
 import logging
 from typing import Any, Optional, Union

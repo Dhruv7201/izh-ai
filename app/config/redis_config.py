@@ -1,4 +1,3 @@
-"""Redis configuration and connection management."""
 import redis.asyncio as aioredis
 from typing import Optional
 import logging

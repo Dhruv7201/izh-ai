@@ -1,4 +1,3 @@
-"""Tests for cache helper."""
 import pytest
 import json
 from unittest.mock import patch, AsyncMock, MagicMock

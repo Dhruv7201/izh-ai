@@ -1,4 +1,3 @@
-"""Tests for chat routes."""
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 
@@ -94,7 +93,7 @@ def test_chat_completion_with_all_parameters(client, mock_openai_client):
             {"role": "system", "content": "You are helpful"},
             {"role": "user", "content": "Hello"}
         ],
-        "model": "gpt-4",
+        "model": "gpt-4o",
         "temperature": 0.5,
         "max_tokens": 500,
         "top_p": 0.9,

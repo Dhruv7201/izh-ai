@@ -1,4 +1,3 @@
-"""OpenAI API helper with Pydantic models."""
 import logging
 from typing import Optional, List, Dict, Any
 from openai import AsyncOpenAI

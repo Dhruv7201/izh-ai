@@ -1,4 +1,3 @@
-"""Tests for settings configuration."""
 import pytest
 import os
 from unittest.mock import patch
@@ -118,7 +117,7 @@ def test_openai_settings():
     """Test OpenAI-specific settings."""
     with patch.dict(os.environ, {
         "OPENAI_API_KEY": "sk-test",
-        "OPENAI_MODEL": "gpt-4-turbo",
+        "OPENAI_MODEL": "gpt-4o",
         "OPENAI_MAX_TOKENS": "4000",
         "OPENAI_TEMPERATURE": "0.5",
         "POSTGRES_PASSWORD": "test-pass",
@@ -126,7 +125,7 @@ def test_openai_settings():
         settings = Settings()
         
         assert settings.OPENAI_API_KEY == "sk-test"
-        assert settings.OPENAI_MODEL == "gpt-4-turbo"
+        assert settings.OPENAI_MODEL == "gpt-4o"
         assert settings.OPENAI_MAX_TOKENS == 4000
         assert settings.OPENAI_TEMPERATURE == 0.5
 

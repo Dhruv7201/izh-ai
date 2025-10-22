@@ -1,4 +1,3 @@
-"""Database configuration and connection management."""
 import asyncpg
 from typing import Optional
 import logging

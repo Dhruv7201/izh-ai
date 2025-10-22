@@ -1,4 +1,3 @@
-"""Tests for OpenAI helper."""
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 
@@ -33,7 +32,7 @@ async def test_chat_completion_success(openai_helper, mock_openai_client):
     response = await openai_helper.chat_completion(request)
     
     assert response.content == "This is a test response"
-    assert response.model == "gpt-4"
+    assert response.model == "gpt-4o"
     assert response.usage["total_tokens"] == 30
     assert response.finish_reason == "stop"
     

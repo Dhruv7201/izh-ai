@@ -1,4 +1,3 @@
-"""Pytest configuration and shared fixtures."""
 import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
@@ -27,7 +26,7 @@ def mock_settings():
         APP_VERSION="0.1.0",
         DEBUG=True,
         OPENAI_API_KEY="test-api-key",
-        OPENAI_MODEL="gpt-4",
+        OPENAI_MODEL="gpt-4o",
         OPENAI_MAX_TOKENS=1000,
         OPENAI_TEMPERATURE=0.7,
         POSTGRES_HOST="localhost",
@@ -98,7 +97,7 @@ def mock_openai_client():
     mock_usage.completion_tokens = 20
     mock_usage.total_tokens = 30
     mock_response.usage = mock_usage
-    mock_response.model = "gpt-4"
+    mock_response.model = "gpt-4o"
     
     mock.chat.completions.create = AsyncMock(return_value=mock_response)
     
@@ -158,7 +157,7 @@ def sample_chat_request():
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Hello, how are you?"}
         ],
-        "model": "gpt-4",
+        "model": "gpt-4o",
         "temperature": 0.7,
         "max_tokens": 1000
     }

@@ -158,7 +158,7 @@ Each engine is callable as a standalone async function and can be orchestrated b
 **AI Layer**
 - OpenAI GPT-4o APIs  
 - LangChain, Transformers  
-- OpenCV, FFmpeg, Whisper (for CV/voice modules)
+- OpenCV, FFmpeg, Google TTS/STT
 
 **External APIs**
 - Google Maps / Places / Weather  

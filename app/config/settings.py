@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o"
     OPENAI_MAX_TOKENS: int = 2000
     OPENAI_TEMPERATURE: float = 0.7
+
+    # GOOGLE PLACES
+    GOOGLE_PLACES_API_KEY: str
     
     # PostgreSQL
     POSTGRES_HOST: str = "localhost"

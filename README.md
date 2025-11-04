@@ -1,93 +1,187 @@
-# izhinga_ai
+#  iZhinga AI Backend
 
+A modular AI backend powering the **iZhinga AI Travel Platform**, designed to deliver **personalized travel itineraries**, **smart packing**, **authentic local experiences**, and **AI-powered trip assistance**.  
+Built with **FastAPI**, **PostgreSQL**, and **modular AI engines**, it enables scalable, API-driven AI for travel intelligence.
 
+---
 
-## Getting started
+##  Core Capabilities
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+-  **FastAPI Framework** - High-performance async APIs  
+-  **AI Engine Architecture** - Modular engines for NLP, Itinerary, Budget, and more  
+-  **PostgreSQL + Redis** - Persistent storage and caching  
+-  **OpenAI Integration** - LLM-based reasoning and personalization  
+-  **Extensible AI Modules** - Plug-and-play modules for packing, shopping, journaling, etc.  
+-  **Async Execution** - Optimized for concurrent requests  
+-  **Dockerized Deployment** - Easy to build, scale, and run anywhere  
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+##  Project Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/izhinga/izhinga_ai.git
-git branch -M main
-git push -uf origin main
+app/
+├── config/
+│   ├── settings.py
+│   ├── database.py
+│   └── redis_config.py
+├── helpers/
+│   ├── db_executor.py
+│   ├── cache_helper.py
+│   ├── ai_engine_loader.py
+│   └── openai_helper.py
+├── modules/ 
+│   ├── nlp_input_processor.py
+│   ├── budget_optimizer.py
+│   ├── profile_intelligence.py
+│   ├── packing_assistant.py
+│   ├── shopping_discovery.py
+│   ├── itinerary_generator.py
+│   ├── safety_monitor.py
+│   ├── voice_assistant.py
+│   └── cultural_etiquette.py
+├── engines/
+│   ├── nlp_input_engine.py
+│   ├── itinerary_engine.py
+│   ├── budget_engine.py
+│   ├── realtime_data_engine.py
+│   ├── local_intelligence_engine.py
+│   ├── authenticity_filter_engine.py
+│   ├── personalization_engine.py
+│   ├── replanning_engine.py
+│   └── feedback_learning_engine.py
+├── routes/
+│   ├── itinerary.py
+│   ├── packing.py
+│   ├── profile.py
+│   ├── shopping.py
+│   └── health.py
+└── main.py
 ```
 
-## Integrate with your tools
+---
 
-- [ ] [Set up project integrations](https://gitlab.com/izhinga/izhinga_ai/-/settings/integrations)
+##  Setup
 
-## Collaborate with your team
+### 1️ Environment Setup
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Copy the environment example file and configure:
+```bash
+cp .env.example .env
+```
 
-## Test and Deploy
+Set your variables for:
+- **PostgreSQL** → connection info  
+- **Redis** → caching host/port  
+- **OpenAI API Keys**  
+- **App config** → name, host, debug mode  
 
-Use the built-in continuous integration in GitLab.
+---
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### 2️ Install Dependencies
 
-***
+Using **uv**:
+```bash
+uv sync
+```
 
-# Editing this README
+Or using **pip**:
+```bash
+pip install -e .
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+---
 
-## Suggestions for a good README
+### 3️ Database Initialization
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Create schema tables:
+```bash
+psql -U postgres -d izhinga_ai -f schema.sql
+```
 
-## Name
-Choose a self-explaining name for your project.
+---
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### 4️ Run the App
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+#### Locally:
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+#### With Docker:
+```bash
+docker-compose up --build
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+---
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+##  Available APIs
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+| Category | Endpoint | Description |
+|-----------|-----------|-------------|
+| **Health** | `/health` | General health check |
+| **Profile Intelligence** | `/profile/generate` | Builds dynamic user profile |
+| **Itinerary Generator** | `/itinerary/generate` | Creates optimized trip plan |
+| **Packing Assistant** | `/packing/generate` | Suggests smart packing list |
+| **Shopping** | `/shopping/recommend` | Finds authentic local products |
+| **Safety** | `/safety/monitor` | Monitors real-time safety updates |
+| **Voice Assistant** | `/assistant/voice` | NLP + translation for voice queries |
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+---
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+##  AI Engine Overview
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+| Engine | Function | Description |
+|--------|-----------|-------------|
+| **Engine 1** | NLP Input Understanding | Parses free-form trip inputs |
+| **Engine 2** | Itinerary Generation | Creates day-by-day travel plans |
+| **Engine 3** | Budget Optimization | Adjusts trips per user budget |
+| **Engine 4** | Real-Time Integration | Adapts to live events, weather |
+| **Engine 5** | Local Intelligence | Finds authentic local experiences |
+| **Engine 6** | Authenticity Filtering | Removes tourist traps |
+| **Engine 7** | Personalization | Learns from profiles & feedback |
+| **Engine 8** | Replanning | Updates itinerary dynamically |
+| **Engine 9** | Continuous Learning | Improves via user feedback |
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Each engine is callable as a standalone async function and can be orchestrated by the backend API.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+---
 
-## License
-For open source projects, say how it is licensed.
+##  Technology Stack
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+**Core Stack**
+- FastAPI  
+- PostgreSQL (asyncpg)  
+- Redis (aioredis)  
+- Docker, uv  
+
+**AI Layer**
+- OpenAI GPT-4o APIs  
+- LangChain, Transformers  
+- OpenCV, FFmpeg, Google TTS/STT
+
+**External APIs**
+- Google Maps / Places / Weather  
+- Serp API, Yelp API, TripAdvisor API  
+
+---
+
+##  Data Flow Summary
+
+1. **User Input** → Parsed by NLP Engine  
+2. **Profile Module** → Generates preference vector  
+3. **Itinerary Engine** → Builds plan using profile + budget  
+4. **Packing & Shopping Modules** → Suggests essentials and buys  
+5. **Safety Engine** → Monitors real-time travel risk  
+6. **Journal Module** → Organizes media & trip stories  
+
+All outputs are structured JSON, ready for persistence in PostgreSQL and caching via Redis.
+
+---
+
+
+##  Development Notes
+
+- Modular design: Each AI engine and module runs independently.  
+- Full async I/O for performance.  
+- Database output stored per `user_id`.  

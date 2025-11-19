@@ -1,36 +1,36 @@
-# 🧠 iZhinga AI Backend
+#  iZhinga AI Backend
 
 A modular AI backend powering the **iZhinga AI Travel Platform**, designed to deliver **personalized travel itineraries**, **smart packing**, **authentic local experiences**, and **AI-powered trip assistance**.  
 Built with **FastAPI**, **PostgreSQL**, and **modular AI engines**, it enables scalable, API-driven AI for travel intelligence.
 
 ---
 
-## 🚀 Core Capabilities
+##  Core Capabilities
 
-- ✅ **FastAPI Framework** - High-performance async APIs  
-- ✅ **AI Engine Architecture** - Modular engines for NLP, Itinerary, Budget, and more  
-- ✅ **PostgreSQL + Redis** - Persistent storage and caching  
-- ✅ **OpenAI Integration** - LLM-based reasoning and personalization  
-- ✅ **Extensible AI Modules** - Plug-and-play modules for packing, shopping, journaling, etc.  
-- ✅ **Async Execution** - Optimized for concurrent requests  
-- ✅ **Dockerized Deployment** - Easy to build, scale, and run anywhere  
+-  **FastAPI Framework** - High-performance async APIs  
+-  **AI Engine Architecture** - Modular engines for NLP, Itinerary, Budget, and more  
+-  **PostgreSQL + Redis** - Persistent storage and caching  
+-  **OpenAI Integration** - LLM-based reasoning and personalization  
+-  **Extensible AI Modules** - Plug-and-play modules for packing, shopping, journaling, etc.  
+-  **Async Execution** - Optimized for concurrent requests  
+-  **Dockerized Deployment** - Easy to build, scale, and run anywhere  
 
 ---
 
-## 🏗️ Project Structure
+##  Project Structure
 
 ```
 app/
-├── config/                    # Environment, database, and Redis configs
+├── config/
 │   ├── settings.py
 │   ├── database.py
 │   └── redis_config.py
-├── helpers/                   # Core utilities
+├── helpers/
 │   ├── db_executor.py
 │   ├── cache_helper.py
-│   ├── ai_engine_loader.py    # Loads and executes AI modules dynamically
+│   ├── ai_engine_loader.py
 │   └── openai_helper.py
-├── modules/                   # AI Feature Modules (1-11)
+├── modules/ 
 │   ├── nlp_input_processor.py
 │   ├── budget_optimizer.py
 │   ├── profile_intelligence.py
@@ -40,7 +40,7 @@ app/
 │   ├── safety_monitor.py
 │   ├── voice_assistant.py
 │   └── cultural_etiquette.py
-├── engines/                   # Core AI Engines (1-9)
+├── engines/
 │   ├── nlp_input_engine.py
 │   ├── itinerary_engine.py
 │   ├── budget_engine.py
@@ -50,20 +50,20 @@ app/
 │   ├── personalization_engine.py
 │   ├── replanning_engine.py
 │   └── feedback_learning_engine.py
-├── routes/                    # API Endpoints
+├── routes/
 │   ├── itinerary.py
 │   ├── packing.py
 │   ├── profile.py
 │   ├── shopping.py
 │   └── health.py
-└── main.py                    # Application entry point
+└── main.py
 ```
 
 ---
 
-## ⚙️ Setup
+##  Setup
 
-### 1️⃣ Environment Setup
+### 1️ Environment Setup
 
 Copy the environment example file and configure:
 ```bash
@@ -78,7 +78,7 @@ Set your variables for:
 
 ---
 
-### 2️⃣ Install Dependencies
+### 2️ Install Dependencies
 
 Using **uv**:
 ```bash
@@ -92,7 +92,7 @@ pip install -e .
 
 ---
 
-### 3️⃣ Database Initialization
+### 3️ Database Initialization
 
 Create schema tables:
 ```bash
@@ -101,7 +101,7 @@ psql -U postgres -d izhinga_ai -f schema.sql
 
 ---
 
-### 4️⃣ Run the App
+### 4️ Run the App
 
 #### Locally:
 ```bash
@@ -115,7 +115,7 @@ docker-compose up --build
 
 ---
 
-## 🧩 Available APIs
+##  Available APIs
 
 | Category | Endpoint | Description |
 |-----------|-----------|-------------|
@@ -129,7 +129,7 @@ docker-compose up --build
 
 ---
 
-## 🧠 AI Engine Overview
+##  AI Engine Overview
 
 | Engine | Function | Description |
 |--------|-----------|-------------|
@@ -147,7 +147,7 @@ Each engine is callable as a standalone async function and can be orchestrated b
 
 ---
 
-## 🧰 Technology Stack
+##  Technology Stack
 
 **Core Stack**
 - FastAPI  
@@ -166,7 +166,7 @@ Each engine is callable as a standalone async function and can be orchestrated b
 
 ---
 
-## 🔄 Data Flow Summary
+##  Data Flow Summary
 
 1. **User Input** → Parsed by NLP Engine  
 2. **Profile Module** → Generates preference vector  
@@ -180,7 +180,7 @@ All outputs are structured JSON, ready for persistence in PostgreSQL and caching
 ---
 
 
-## 🧪 Development Notes
+##  Development Notes
 
 - Modular design: Each AI engine and module runs independently.  
 - Full async I/O for performance.  

@@ -1,7 +1,7 @@
 from typing import Dict, Any
 from nlp_input_processor import build_gpt_payload, format_for_gpt
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 
 
 def call_gpt_with_preprocessing(user_query: str, user_profile: Dict[str, Any] = None):
@@ -22,7 +22,7 @@ def call_gpt_with_preprocessing(user_query: str, user_profile: Dict[str, Any] = 
     system_prompt = create_enhanced_prompt(payload)
     
     # Step 3: Initialize PydanticAI agent with GPT-4o
-    model = OpenAIModel('gpt-4o')
+    model = OpenAIChatModel('gpt-4o')
     agent = Agent(
         model=model,
         system_prompt=system_prompt

@@ -45,7 +45,10 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: str = "*"
-    
+
+    # WEATHER API
+    OPEN_WEATHER_MAP_API_KEY: str
+
     @property
     def postgres_url(self) -> str:
         """Get PostgreSQL connection URL."""

@@ -19,8 +19,18 @@ class Settings(BaseSettings):
     OPENAI_MAX_TOKENS: int = 2000
     OPENAI_TEMPERATURE: float = 0.7
 
+    # Ollama
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.1"
+
     # GOOGLE PLACES
     GOOGLE_PLACES_API_KEY: str
+
+    # FOURSQUARE
+    FOURSQUARE_API_KEY: str
+
+    # TRIPADVISOR
+    TRIPADVISOR_API_KEY: str
     
     # PostgreSQL
     POSTGRES_HOST: str = "localhost"
@@ -39,9 +49,23 @@ class Settings(BaseSettings):
     REDIS_MAX_CONNECTIONS: int = 10
     REDIS_DECODE_RESPONSES: bool = True
     
+    # MongoDB
+    MONGODB_HOST: str = "localhost"
+    MONGODB_PORT: int = 27017
+    MONGODB_USER: Optional[str] = None
+    MONGODB_PASSWORD: Optional[str] = None
+    MONGODB_DB: str = "ai_backend"
+    MONGODB_AUTH_SOURCE: str = "admin"
+    
     # Cache settings
     CACHE_TTL: int = 3600  # 1 hour default
     CACHE_ENABLED: bool = True
+    
+    # Rate Limiting
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_CHAT_COMPLETION: str = "10/minute"
+    RATE_LIMIT_SIMPLE_CHAT: str = "20/minute"
     
     # CORS
     CORS_ORIGINS: str = "*"
@@ -60,6 +84,13 @@ class Settings(BaseSettings):
         if self.REDIS_PASSWORD:
             return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+    
+    @property
+    def mongodb_url(self) -> str:
+        """Get MongoDB connection URL."""
+        if self.MONGODB_USER and self.MONGODB_PASSWORD:
+            return f"mongodb://{self.MONGODB_USER}:{self.MONGODB_PASSWORD}@{self.MONGODB_HOST}:{self.MONGODB_PORT}/{self.MONGODB_DB}?authSource={self.MONGODB_AUTH_SOURCE}"
+        return f"mongodb://{self.MONGODB_HOST}:{self.MONGODB_PORT}/{self.MONGODB_DB}"
     
     class Config:
         """Pydantic configuration."""

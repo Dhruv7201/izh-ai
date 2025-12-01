@@ -1,10 +1,3 @@
-import sys
-import os
-# get parent directory
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-print(sys.path)
-
 import os
 import re
 import torch

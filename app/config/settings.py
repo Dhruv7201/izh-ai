@@ -67,6 +67,13 @@ class Settings(BaseSettings):
     RATE_LIMIT_CHAT_COMPLETION: str = "10/minute"
     RATE_LIMIT_SIMPLE_CHAT: str = "20/minute"
     
+    # Data Security
+    DATA_MASKING_ENABLED: bool = True
+    DATA_ENCRYPTION_ENABLED: bool = False
+    ENCRYPTION_KEY: str = "izh-ai-default-encryption-key-change-in-production"
+    MASK_PII_IN_LOGS: bool = True
+    STORE_UNMASKED_DATA: bool = False
+    
     # CORS
     CORS_ORIGINS: str = "*"
 

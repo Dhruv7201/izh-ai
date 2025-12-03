@@ -1,242 +1,119 @@
+import os
 import logging
 from typing import Optional, List, Dict, Any
-from openai import AsyncOpenAI
-from pydantic import BaseModel, Field
 
+from pydantic import BaseModel
 from app.config.settings import settings
+from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIModel
+from toon import encode
 
 logger = logging.getLogger(__name__)
 
 
-class Message(BaseModel):
-    """Chat message model."""
-    role: str = Field(..., description="Role of the message sender (system, user, assistant)")
-    content: str = Field(..., description="Content of the message")
+class Activity(BaseModel):
+    time: str
+    title: str
+    description: Optional[str]
+    poi: Optional[str]  # must match POI name from poi_data when used
 
 
-class ChatRequest(BaseModel):
-    """Chat completion request model."""
-    messages: List[Message] = Field(..., description="List of messages in the conversation")
-    model: Optional[str] = Field(default=None, description="Model to use for completion")
-    temperature: Optional[float] = Field(default=None, ge=0, le=2, description="Sampling temperature")
-    max_tokens: Optional[int] = Field(default=None, gt=0, description="Maximum tokens to generate")
-    top_p: Optional[float] = Field(default=1.0, ge=0, le=1, description="Nucleus sampling parameter")
-    frequency_penalty: Optional[float] = Field(default=0.0, ge=-2, le=2, description="Frequency penalty")
-    presence_penalty: Optional[float] = Field(default=0.0, ge=-2, le=2, description="Presence penalty")
-    stop: Optional[List[str]] = Field(default=None, description="Stop sequences")
+class DayPlan(BaseModel):
+    day: int
+    date: Optional[str]
+    summary: Optional[str]
+    activities: List[Activity]
 
 
-class ChatResponse(BaseModel):
-    """Chat completion response model."""
-    content: str = Field(..., description="Generated response content")
-    model: str = Field(..., description="Model used for completion")
-    usage: Dict[str, int] = Field(..., description="Token usage information")
-    finish_reason: Optional[str] = Field(default=None, description="Reason for completion finish")
+class HotelRecommendation(BaseModel):
+    name: str
+    location: str
+    rating: float
+    price_per_night: int
+    distance_to_center_km: float
+    reasons: List[str]
 
 
-class EmbeddingRequest(BaseModel):
-    """Embedding request model."""
-    input: str = Field(..., description="Text to embed")
-    model: str = Field(default="text-embedding-ada-002", description="Model to use for embeddings")
+class ItineraryOutput(BaseModel):
+    destination: str
+    summary: str
+    hotels: List[HotelRecommendation]
+    day_plans: List[DayPlan]
 
 
-class EmbeddingResponse(BaseModel):
-    """Embedding response model."""
-    embedding: List[float] = Field(..., description="Embedding vector")
-    model: str = Field(..., description="Model used for embedding")
-    usage: Dict[str, int] = Field(..., description="Token usage information")
+os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
+
+llm = OpenAIModel(settings.OPENAI_MODEL)
+
+# The KEY — this is the correct structured-output way
+itinerary_agent = Agent(
+    llm,
+    output_type=ItineraryOutput,
+)
 
 
 class OpenAIHelper:
-    """Helper class for OpenAI API interactions."""
-    
-    def __init__(self):
-        """Initialize OpenAI helper."""
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.default_model = settings.OPENAI_MODEL
-        self.default_max_tokens = settings.OPENAI_MAX_TOKENS
-        self.default_temperature = settings.OPENAI_TEMPERATURE
-    
-    async def chat_completion(
-        self, 
-        request: ChatRequest
-    ) -> ChatResponse:
-        """
-        Generate chat completion.
-        
-        Args:
-            request: Chat completion request
-            
-        Returns:
-            Chat completion response
-        """
-        try:
-            # Prepare parameters
-            model = request.model or self.default_model
-            temperature = request.temperature if request.temperature is not None else self.default_temperature
-            max_tokens = request.max_tokens or self.default_max_tokens
-            
-            # Convert messages to dict format
-            messages = [msg.model_dump() for msg in request.messages]
-            
-            # Make API call
-            response = await self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                top_p=request.top_p,
-                frequency_penalty=request.frequency_penalty,
-                presence_penalty=request.presence_penalty,
-                stop=request.stop,
-            )
-            
-            # Parse response
-            choice = response.choices[0]
-            usage = {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens,
-            }
-            
-            logger.info(f"Chat completion: {usage['total_tokens']} tokens used")
-            
-            return ChatResponse(
-                content=choice.message.content,
-                model=response.model,
-                usage=usage,
-                finish_reason=choice.finish_reason,
-            )
-        except Exception as e:
-            logger.error(f"Chat completion error: {e}")
-            raise
-    
-    async def simple_completion(
+
+    async def generate_itinerary(
         self,
-        prompt: str,
-        system_message: Optional[str] = None,
-        **kwargs
-    ) -> str:
-        """
-        Simple chat completion with just a prompt.
+        nlp_data: Dict[str, Any],
+        poi_data: List[Dict[str, Any]],
+        user_interests: Dict[str, float],
+        food_preferences: Dict[str, bool]
+    ) -> ItineraryOutput:
         
-        Args:
-            prompt: User prompt
-            system_message: Optional system message
-            **kwargs: Additional parameters
-            
-        Returns:
-            Generated response content
+        """Generates a detailed itinerary using OpenAI based on NLP data, POI data, user interests, and food preferences."""
+
+        encoded_nlp_data = encode(nlp_data)
+        encoded_poi_data = encode(poi_data)
+        encoded_user_interests = encode(user_interests)
+        encoded_food_preferences = encode(food_preferences)
+        print("Encoded NLP Data:", encoded_nlp_data)
+        print("Encoded POI Data:", encoded_poi_data)
+        print("Encoded User Interests:", encoded_user_interests)
+        print("Encoded Food Preferences:", encoded_food_preferences)
+
+        prompt = f"""
+            Produce a JSON itinerary for the trip using the exact schema:
+
+            destination: str
+            summary: str
+            hotels: list of {{
+                name: str,
+                location: str,
+                rating: float,
+                price_per_night: int,
+                distance_to_center_km: float,
+                reasons: list[str]
+            }}
+            day_plans: list of {{
+                day: int,
+                date: str | null,
+                summary: str | null,
+                activities: list[{{ time: str, title: str, description: str | null, poi: str | null }}]
+            }}
+
+            Rules and constraints:
+            - Give 3 hotel recommendations sorted by a balance of rating, price, and proximity to city center.
+            - Use ONLY POIs from the POI_DATA array for the `activities[i].poi` field when you reference a place.
+            - If an activity is generic (e.g. "Rest at hotel"), set `poi` to null.
+            - Respect POI opening_time and closing_time when assigning activity times. dont set time before 10:00 AM or after 8:00 PM unless necessary.
+            - Prefer POIs whose `best_time_to_visit` matches the planned time when possible.
+            - Use `user_interests` to prioritize activity types (e.g. if "couple_trip" is highest, prefer romantic and couple-friendly POIs).
+            - Ensure daily itineraries are balanced with sightseeing, meals, rest, and travel time.
+
+            NLP_DATA:
+            {encoded_nlp_data}
+
+            POI_DATA:
+            {encoded_poi_data}
+
+            USER_INTERESTS:
+            {encoded_user_interests}
         """
-        messages = []
-        
-        if system_message:
-            messages.append(Message(role="system", content=system_message))
-        
-        messages.append(Message(role="user", content=prompt))
-        
-        request = ChatRequest(messages=messages, **kwargs)
-        response = await self.chat_completion(request)
-        
-        return response.content
-    
-    async def streaming_completion(
-        self,
-        request: ChatRequest
-    ):
-        """
-        Generate streaming chat completion.
-        
-        Args:
-            request: Chat completion request
-            
-        Yields:
-            Content chunks
-        """
-        try:
-            model = request.model or self.default_model
-            temperature = request.temperature if request.temperature is not None else self.default_temperature
-            max_tokens = request.max_tokens or self.default_max_tokens
-            
-            messages = [msg.model_dump() for msg in request.messages]
-            
-            stream = await self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                top_p=request.top_p,
-                frequency_penalty=request.frequency_penalty,
-                presence_penalty=request.presence_penalty,
-                stop=request.stop,
-                stream=True,
-            )
-            
-            async for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
-        except Exception as e:
-            logger.error(f"Streaming completion error: {e}")
-            raise
-    
-    async def create_embedding(
-        self,
-        request: EmbeddingRequest
-    ) -> EmbeddingResponse:
-        """
-        Create text embedding.
-        
-        Args:
-            request: Embedding request
-            
-        Returns:
-            Embedding response
-        """
-        try:
-            response = await self.client.embeddings.create(
-                model=request.model,
-                input=request.input,
-            )
-            
-            usage = {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "total_tokens": response.usage.total_tokens,
-            }
-            
-            logger.info(f"Embedding created: {usage['total_tokens']} tokens used")
-            
-            return EmbeddingResponse(
-                embedding=response.data[0].embedding,
-                model=response.model,
-                usage=usage,
-            )
-        except Exception as e:
-            logger.error(f"Embedding error: {e}")
-            raise
-    
-    async def moderate_content(self, text: str) -> Dict[str, Any]:
-        """
-        Moderate content using OpenAI moderation API.
-        
-        Args:
-            text: Text to moderate
-            
-        Returns:
-            Moderation results
-        """
-        try:
-            response = await self.client.moderations.create(input=text)
-            result = response.results[0]
-            
-            return {
-                "flagged": result.flagged,
-                "categories": result.categories.model_dump(),
-                "category_scores": result.category_scores.model_dump(),
-            }
-        except Exception as e:
-            logger.error(f"Moderation error: {e}")
-            raise
+
+        result = await itinerary_agent.run(prompt)
+        return result.output
 
 
-# Global OpenAI helper instance
 openai_helper = OpenAIHelper()

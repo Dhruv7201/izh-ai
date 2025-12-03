@@ -14,17 +14,15 @@ async def ingest_destination(name, lat, lng):
     async with aiohttp.ClientSession() as session:
 
         print(f"\n🔍 Fetching Google Places for {name}...")
-        # google_pois = await fetch_google_places(session, name, lat, lng)
+        google_pois = await fetch_google_places(name, lat, lng)
 
         print(f"🔍 Fetching Foursquare for {name}...")
-        foursquare_pois = await fetch_foursquare(session, lat, lng)
+        foursquare_pois = await fetch_foursquare(lat, lng)
 
         print(f"🔍 Fetching TripAdvisor for {name}...")
-        # tripadvisor_pois = await fetch_tripadvisor(session, lat, lng)
-        exit()
-        all_raw = foursquare_pois # + google_pois + tripadvisor_pois
+        tripadvisor_pois = await fetch_tripadvisor(lat, lng)
+        all_raw = google_pois + foursquare_pois + tripadvisor_pois
         print(f"📦 Total raw POIs fetched: {len(all_raw)}")
-        exit()
 
         normalized = [normalize(p) for p in all_raw]
 
@@ -41,11 +39,7 @@ async def ingest_destination(name, lat, lng):
 
 async def main():
     destinations = [
-        ("golden temple", 31.6200, 74.8765),
-        # ("Dubai", 25.2048, 55.2708),
-        # ("Bali", -8.3405, 115.0920),
-        # ("Phuket", 7.8804, 98.3923),
-        # ("London", 51.5072, -0.1276)
+        ("golden temple", 31.6200, 74.8765)
     ]
 
     coros = [ingest_destination(name, lat, lng) for name, lat, lng in destinations]

@@ -1,4 +1,5 @@
 import sys
+sys.path.append("/home/dhruv/workspace/izh/")
 import requests
 from typing import Dict, List, Optional, Any
 from app.config.settings import settings

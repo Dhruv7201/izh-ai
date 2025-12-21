@@ -27,85 +27,109 @@ if __name__ == "__main__":
         "preferences": ["art", "history", "cuisine"],
     }
     test_poi_data = [
-    {
-        "name": "Golden Temple",
-        "distance_to_center_km": 1.2,
-        "cluster_location": "Heritage Circuit",
-        "opening_time": "04:00",
-        "closing_time": "23:00",
-        "best_time_to_visit": "early_morning"
-    },
-    {
-        "name": "Jallianwala Bagh",
-        "distance_to_center_km": 1.5,
-        "cluster_location": "Heritage Circuit",
-        "opening_time": "06:30",
-        "closing_time": "19:30",
-        "best_time_to_visit": "morning"
-    },
-    {
-        "name": "Partition Museum",
-        "distance_to_center_km": 1.6,
-        "cluster_location": "Heritage Circuit",
-        "opening_time": "10:00",
-        "closing_time": "18:00",
-        "best_time_to_visit": "afternoon"
-    },
-    {
-        "name": "Wagah Border Ceremony",
-        "distance_to_center_km": 30.0,
-        "cluster_location": "Outskirts",
-        "opening_time": "15:00",
-        "closing_time": "18:00",
-        "best_time_to_visit": "evening"
-    },
-    {
-        "name": "Gobindgarh Fort",
-        "distance_to_center_km": 2.5,
-        "cluster_location": "Central",
-        "opening_time": "10:00",
-        "closing_time": "22:00",
-        "best_time_to_visit": "evening"
-    },
-    {
-        "name": "Durgiana Temple",
-        "distance_to_center_km": 2.0,
-        "cluster_location": "Central",
-        "opening_time": "05:00",
-        "closing_time": "21:00",
-        "best_time_to_visit": "morning"
-    },
-    {
-        "name": "Hall Bazaar",
-        "distance_to_center_km": 1.0,
-        "cluster_location": "Marketplace",
-        "opening_time": "10:00",
-        "closing_time": "22:00",
-        "best_time_to_visit": "afternoon"
-    },
-    {
-        "name": "Khalsa College",
-        "distance_to_center_km": 5.0,
-        "cluster_location": "Academic Belt",
-        "opening_time": "09:00",
-        "closing_time": "17:00",
-        "best_time_to_visit": "morning"
-    },
-    {
-        "name": "Ram Tirath Temple",
-        "distance_to_center_km": 12.0,
-        "cluster_location": "Outskirts",
-        "opening_time": "06:00",
-        "closing_time": "20:00",
-        "best_time_to_visit": "morning"
-    },
-    {
-        "name": "Sadda Pind",
-        "distance_to_center_km": 8.0,
-        "cluster_location": "Experience Zone",
-        "opening_time": "11:00",
-        "closing_time": "23:00",
-        "best_time_to_visit": "evening"
+        {
+            "name": "Hotel Radisson Blu",
+            "distance_to_center_km": 1.2,
+            "cluster_location": "Heritage Circuit",
+            "opening_time": "04:00",
+            "closing_time": "23:00",
+            "best_time_to_visit": "early_morning"
+        },
+        {
+            "name": "Hotel Park Plaza",
+            "distance_to_center_km": 1.2,
+            "cluster_location": "Heritage Circuit",
+            "opening_time": "04:00",
+            "closing_time": "23:00",
+            "best_time_to_visit": "early_morning"
+        },
+        {
+            "name": "Golden Temple",
+            "distance_to_center_km": 1.2,
+            "cluster_location": "Heritage Circuit",
+            "opening_time": "04:00",
+            "closing_time": "23:00",
+            "best_time_to_visit": "early_morning"
+        },
+        {
+            "name": "Hotel Radisson Blu",
+            "distance_to_center_km": 1.2,
+            "cluster_location": "Heritage Circuit",
+            "opening_time": "04:00",
+            "closing_time": "23:00",
+            "best_time_to_visit": "early_morning"
+        },
+        {
+            "name": "Jallianwala Bagh",
+            "distance_to_center_km": 1.5,
+            "cluster_location": "Heritage Circuit",
+            "opening_time": "06:30",
+            "closing_time": "19:30",
+            "best_time_to_visit": "morning"
+        },
+        {
+            "name": "Partition Museum",
+            "distance_to_center_km": 1.6,
+            "cluster_location": "Heritage Circuit",
+            "opening_time": "10:00",
+            "closing_time": "18:00",
+            "best_time_to_visit": "afternoon"
+        },
+        {
+            "name": "Wagah Border Ceremony",
+            "distance_to_center_km": 30.0,
+            "cluster_location": "Outskirts",
+            "opening_time": "15:00",
+            "closing_time": "18:00",
+            "best_time_to_visit": "evening"
+        },
+        {
+            "name": "Gobindgarh Fort",
+            "distance_to_center_km": 2.5,
+            "cluster_location": "Central",
+            "opening_time": "10:00",
+            "closing_time": "22:00",
+            "best_time_to_visit": "evening"
+        },
+        {
+            "name": "Durgiana Temple",
+            "distance_to_center_km": 2.0,
+            "cluster_location": "Central",
+            "opening_time": "05:00",
+            "closing_time": "21:00",
+            "best_time_to_visit": "morning"
+        },
+        {
+            "name": "Hall Bazaar",
+            "distance_to_center_km": 1.0,
+            "cluster_location": "Marketplace",
+            "opening_time": "10:00",
+            "closing_time": "22:00",
+            "best_time_to_visit": "afternoon"
+        },
+        {
+            "name": "Khalsa College",
+            "distance_to_center_km": 5.0,
+            "cluster_location": "Academic Belt",
+            "opening_time": "09:00",
+            "closing_time": "17:00",
+            "best_time_to_visit": "morning"
+        },
+        {
+            "name": "Ram Tirath Temple",
+            "distance_to_center_km": 12.0,
+            "cluster_location": "Outskirts",
+            "opening_time": "06:00",
+            "closing_time": "20:00",
+            "best_time_to_visit": "morning"
+        },
+        {
+            "name": "Sadda Pind",
+            "distance_to_center_km": 8.0,
+            "cluster_location": "Experience Zone",
+            "opening_time": "11:00",
+            "closing_time": "23:00",
+            "best_time_to_visit": "evening"
     }]
     test_user_interests = {
         "cultural_trip": 0.40,

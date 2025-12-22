@@ -1,19 +1,35 @@
 import uuid
+import json
 
 def normalize(raw):
-    return {
-        "poi_uuid": str(uuid.uuid4()),
+    """Normalize raw POI data into basic POI and details structure."""
+    poi_uuid = str(uuid.uuid4())
+    
+    # Basic POI data (for pois table)
+    poi_data = {
+        "poi_uuid": poi_uuid,
         "source": raw["source"],
-        "source_id": raw["id"],
+        "source_id": str(raw["id"]) if raw.get("id") else None,
         "name": raw["name"],
-        "lat": raw["lat"],
-        "lng": raw["lng"],
-        "rating": raw.get("rating", 0),
+        "lat": float(raw["lat"]),
+        "lng": float(raw["lng"]),
+        "rating": float(raw.get("rating", 0)) if raw.get("rating") else None,
         "address": raw.get("address"),
+    }
+    
+    # Details data (for poi_details table)
+    details_data = {
         "categories": extract_categories(raw),
         "opening_hours": raw.get("opening_hours", []),
         "duration_minutes": estimate_duration(raw),
         "best_time": estimate_best_time(raw),
+        "photos": raw.get("photos", []),
+        "user_ratings_total": raw.get("user_ratings_total", 0),
+    }
+    
+    return {
+        "poi": poi_data,
+        "details": details_data
     }
 
 def extract_categories(p):

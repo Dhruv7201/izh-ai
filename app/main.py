@@ -14,7 +14,7 @@ from slowapi.errors import RateLimitExceeded
 from app.config.settings import settings
 from app.config.database import db_config
 from app.config.redis_config import redis_config
-from app.routes import chat, health
+from app.routes import chat, health, auth
 
 # Configure logging
 logging.basicConfig(
@@ -90,6 +90,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(chat.router)
+app.include_router(auth.router)
 
 
 @app.get("/")

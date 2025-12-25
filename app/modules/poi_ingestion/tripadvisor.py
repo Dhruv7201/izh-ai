@@ -14,8 +14,6 @@ async def fetch_tripadvisor(session, lat, lng):
 
     async with session.get(url, headers=TA_HEADERS, params=params) as resp:
         data = await resp.json()
-        print("request:", url, params)
-        print("response:", data)
         results = data.get("data", [])
         pois = []
 

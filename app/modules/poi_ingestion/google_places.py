@@ -46,8 +46,6 @@ async def fetch_details(session, place_id):
 
     async with session.get(url, params=params) as resp:
         data = await resp.json()
-        print("request:", url, params)
-        print("response:", data)
         
         r = data.get("result")
         if not r:

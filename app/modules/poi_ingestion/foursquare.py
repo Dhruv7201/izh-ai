@@ -1,36 +1,41 @@
-import sys
-sys.path.append("/home/dhruv/workspace/izh/")
-import requests
+import aiohttp
 import json
 from app.config.settings import settings
 
 FOURSQUARE_API_KEY = settings.FOURSQUARE_API_KEY
 
 
-def fetch_foursquare(lat, lng, radius=1000, limit=50):
+async def fetch_foursquare(session, lat, lng):
     url = "https://places-api.foursquare.com/places/search"
-
+    
     headers = {
         "X-Places-Api-Version": "2025-06-17",
         "accept": "application/json",
         "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
     }
-
+    
     params = {
         "ll": f"{lat},{lng}",
-        "radius": radius,        # meters
-        "limit": limit,
-        "categories": "16000"    # Foursquare Category: "Arts & Entertainment"
-                                # includes attractions, museums, landmarks, etc.
+        "limit": 50
     }
-    print("=== REQUEST DETAILS ===")
-    print("URL:", url)
-    print("Headers:", headers)
-    print("Params:", params)
-    response = requests.get(url, headers=headers, params=params)
-
-    if response.status_code != 200:
-        raise Exception(f"FSQ API Error: {response.status_code} - {response.text}")
-
-    data = response.json()
-    return data.get("results", [])
+    
+    async with session.get(url, headers=headers, params=params) as resp:
+        data = await resp.json()
+        
+        results = data.get("results", [])
+        pois = []
+        
+        for r in results:
+            location = r.get("location", {})
+            pois.append({
+                "source": "foursquare",
+                "id": r.get("fsq_id"),
+                "name": r.get("name"),
+                "lat": float(location.get("latitude", 0)),
+                "lng": float(location.get("longitude", 0)),
+                "rating": float(r.get("rating", 0)) if r.get("rating") else 0,
+                "address": location.get("formatted_address"),
+                "categories": [c.get("name") for c in r.get("categories", [])],
+            })
+        
+        return pois

@@ -26,6 +26,7 @@ dependencies = [
     "hdbscan>=0.8.40",
     "scikit-learn>=1.7.2",
     "python-toon>=0.1.3",
+    "textblob>=0.18.0",
 ]
 
 [project.optional-dependencies]

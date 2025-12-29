@@ -45,7 +45,7 @@ async def ingest_destination(name, lat, lng, ingestion_date=None):
         foursquare_pois = []
 
         print(f"🔍 Fetching TripAdvisor for {name}...")
-        tripadvisor_pois = await fetch_tripadvisor(session, lat, lng)
+        tripadvisor_pois = await fetch_tripadvisor(session, lat, lng, location_name=name)
         
         all_raw = google_pois + foursquare_pois + tripadvisor_pois
         print(f"📦 Total raw POIs fetched: {len(all_raw)}")

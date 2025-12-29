@@ -76,9 +76,27 @@ CREATE TABLE IF NOT EXISTS poi_details (
     UNIQUE(poi_id)
 );
 
+CREATE TABLE IF NOT EXISTS poi_reviews (
+    id SERIAL PRIMARY KEY,
+    poi_id INTEGER REFERENCES pois(id) ON DELETE CASCADE,
+    author_name VARCHAR(255),
+    author_url TEXT,
+    language VARCHAR(10),
+    profile_photo_url TEXT,
+    rating INTEGER,
+    relative_time_description VARCHAR(100),
+    text TEXT,
+    time INTEGER,
+    sentiment_score DECIMAL(3, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(poi_id, author_name, time)
+);
+
 CREATE INDEX IF NOT EXISTS idx_pois_destination ON pois(destination_name, destination_lat, destination_lng);
 CREATE INDEX IF NOT EXISTS idx_pois_cluster_id ON pois(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_pois_source ON pois(source, source_id);
 CREATE INDEX IF NOT EXISTS idx_pois_location ON pois(lat, lng);
 CREATE INDEX IF NOT EXISTS idx_pois_ingestion_date ON pois(ingestion_date);
 CREATE INDEX IF NOT EXISTS idx_poi_details_poi_id ON poi_details(poi_id);
+CREATE INDEX IF NOT EXISTS idx_poi_reviews_poi_id ON poi_reviews(poi_id);
+CREATE INDEX IF NOT EXISTS idx_poi_reviews_rating ON poi_reviews(rating);

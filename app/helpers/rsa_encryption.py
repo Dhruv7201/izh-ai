@@ -1,10 +1,12 @@
 import logging
 import json
 import base64
+import os
 from typing import Optional, Dict, Any, Union
 from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
 from app.config.settings import settings
@@ -13,7 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class RSAEncryptionHelper:
-    """Helper class for RSA encryption and decryption of API responses."""
+    """Helper class for hybrid encryption (AES-256 + RSA) of API responses.
+    
+    Uses AES-256 for data encryption and RSA for encrypting the AES key.
+    This allows encryption of data of any size efficiently.
+    """
     
     def __init__(
         self,
@@ -205,19 +211,24 @@ class RSAEncryptionHelper:
         public_key: Optional[rsa.RSAPublicKey] = None
     ) -> str:
         """
-        Encrypt data using RSA public key.
+        Encrypt data using hybrid encryption (AES-256 + RSA).
+        
+        The data is encrypted with AES-256, and the AES key is encrypted with RSA.
+        This allows encryption of data of any size.
         
         Args:
             data: Data to encrypt (string, bytes, or dict)
             public_key: Public key to use (uses self.public_key if not provided)
             
         Returns:
-            Base64-encoded encrypted data
+            JSON string containing encrypted_key (RSA-encrypted AES key), 
+            encrypted_data (AES-encrypted data), and iv (initialization vector),
+            all base64-encoded
         """
         if not public_key and not self.public_key:
             raise ValueError("No public key available for encryption")
         
-        key_to_use = public_key or self.public_key
+        rsa_key_to_use = public_key or self.public_key
         
         # Convert data to bytes
         if isinstance(data, dict):
@@ -227,34 +238,45 @@ class RSAEncryptionHelper:
         else:
             data_bytes = data
         
-        # RSA can only encrypt data smaller than the key size
-        # For larger data, we need to split or use hybrid encryption
-        # For now, we'll encrypt directly (works for small data)
-        max_chunk_size = (key_to_use.key_size // 8) - 2 * hashes.SHA256.digest_size - 2
+        # Generate a random AES-256 key (32 bytes = 256 bits)
+        aes_key = os.urandom(32)
         
-        if len(data_bytes) <= max_chunk_size:
-            # Encrypt in one chunk
-            encrypted = key_to_use.encrypt(
-                data_bytes,
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                    algorithm=hashes.SHA256(),
-                    label=None
-                )
+        # Generate a random IV (16 bytes for AES)
+        iv = os.urandom(16)
+        
+        # Encrypt data with AES-256 in CBC mode
+        cipher = Cipher(
+            algorithms.AES(aes_key),
+            modes.CBC(iv),
+            backend=self.backend
+        )
+        encryptor = cipher.encryptor()
+        
+        # Pad data to be multiple of block size (16 bytes for AES)
+        pad_length = 16 - (len(data_bytes) % 16)
+        padded_data = data_bytes + bytes([pad_length] * pad_length)
+        
+        encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
+        
+        # Encrypt AES key with RSA
+        encrypted_aes_key = rsa_key_to_use.encrypt(
+            aes_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
             )
-            return base64.b64encode(encrypted).decode('utf-8')
-        else:
-            # For larger data, we'll use a hybrid approach or chunking
-            # This is a simplified version - in production, consider using hybrid encryption
-            logger.warning(
-                f"Data size ({len(data_bytes)} bytes) exceeds RSA encryption limit. "
-                "Consider using hybrid encryption for large payloads."
-            )
-            # For now, raise an error for data that's too large
-            raise ValueError(
-                f"Data too large for RSA encryption. Maximum size: {max_chunk_size} bytes. "
-                "Consider using hybrid encryption or splitting the data."
-            )
+        )
+        
+        # Create result dictionary
+        result = {
+            "encrypted_key": base64.b64encode(encrypted_aes_key).decode('utf-8'),
+            "encrypted_data": base64.b64encode(encrypted_data).decode('utf-8'),
+            "iv": base64.b64encode(iv).decode('utf-8')
+        }
+        
+        # Return as JSON string
+        return json.dumps(result)
     
     def decrypt(
         self,
@@ -262,10 +284,12 @@ class RSAEncryptionHelper:
         private_key: Optional[rsa.RSAPrivateKey] = None
     ) -> bytes:
         """
-        Decrypt data using RSA private key.
+        Decrypt data using hybrid decryption (AES-256 + RSA).
+        
+        First decrypts the AES key with RSA, then decrypts the data with AES-256.
         
         Args:
-            encrypted_data: Base64-encoded encrypted data
+            encrypted_data: JSON string containing encrypted_key, encrypted_data, and iv
             private_key: Private key to use (uses self.private_key if not provided)
             
         Returns:
@@ -274,19 +298,52 @@ class RSAEncryptionHelper:
         if not private_key and not self.private_key:
             raise ValueError("No private key available for decryption")
         
-        key_to_use = private_key or self.private_key
+        rsa_key_to_use = private_key or self.private_key
         
         try:
-            encrypted_bytes = base64.b64decode(encrypted_data.encode('utf-8'))
-            decrypted = key_to_use.decrypt(
-                encrypted_bytes,
+            # Parse the encrypted data JSON
+            encrypted_dict = json.loads(encrypted_data)
+            
+            encrypted_key_b64 = encrypted_dict.get("encrypted_key")
+            encrypted_data_b64 = encrypted_dict.get("encrypted_data")
+            iv_b64 = encrypted_dict.get("iv")
+            
+            if not all([encrypted_key_b64, encrypted_data_b64, iv_b64]):
+                raise ValueError("Missing required fields in encrypted data")
+            
+            # Decode base64 values
+            encrypted_aes_key = base64.b64decode(encrypted_key_b64)
+            encrypted_data_bytes = base64.b64decode(encrypted_data_b64)
+            iv = base64.b64decode(iv_b64)
+            
+            # Decrypt AES key with RSA
+            aes_key = rsa_key_to_use.decrypt(
+                encrypted_aes_key,
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
                     algorithm=hashes.SHA256(),
                     label=None
                 )
             )
+            
+            # Decrypt data with AES-256
+            cipher = Cipher(
+                algorithms.AES(aes_key),
+                modes.CBC(iv),
+                backend=self.backend
+            )
+            decryptor = cipher.decryptor()
+            
+            padded_decrypted = decryptor.update(encrypted_data_bytes) + decryptor.finalize()
+            
+            # Remove padding
+            pad_length = padded_decrypted[-1]
+            decrypted = padded_decrypted[:-pad_length]
+            
             return decrypted
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse encrypted data JSON: {e}")
+            raise ValueError(f"Invalid encrypted data format: {e}")
         except Exception as e:
             logger.error(f"Decryption failed: {e}")
             raise ValueError(f"Failed to decrypt data: {e}")
@@ -300,7 +357,7 @@ class RSAEncryptionHelper:
         Decrypt and parse JSON data.
         
         Args:
-            encrypted_data: Base64-encoded encrypted data
+            encrypted_data: JSON string containing encrypted_key, encrypted_data, and iv
             private_key: Private key to use (uses self.private_key if not provided)
             
         Returns:
@@ -318,7 +375,7 @@ class RSAEncryptionHelper:
         Decrypt data to string.
         
         Args:
-            encrypted_data: Base64-encoded encrypted data
+            encrypted_data: JSON string containing encrypted_key, encrypted_data, and iv
             private_key: Private key to use (uses self.private_key if not provided)
             
         Returns:
@@ -333,7 +390,7 @@ class RSAEncryptionHelper:
         public_key: Optional[rsa.RSAPublicKey] = None
     ) -> Dict[str, Any]:
         """
-        Encrypt API response data.
+        Encrypt API response data using hybrid encryption (AES-256 + RSA).
         
         Args:
             response_data: API response dictionary to encrypt
@@ -347,10 +404,9 @@ class RSAEncryptionHelper:
             return {
                 "encrypted": True,
                 "data": encrypted,
-                "algorithm": "RSA-OAEP-SHA256"
+                "algorithm": "AES256-RSA-OAEP-SHA256"
             }
         except ValueError as e:
-            # If data is too large, return error response
             logger.error(f"Failed to encrypt API response: {e}")
             return {
                 "encrypted": False,

@@ -40,6 +40,17 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation
 CREATE INDEX IF NOT EXISTS idx_api_usage_user_id ON api_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_usage_created_at ON api_usage(created_at);
 
+-- Cities Table
+CREATE TABLE IF NOT EXISTS cities (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    lat DECIMAL(10, 8) NOT NULL,
+    lng DECIMAL(11, 8) NOT NULL,
+    formatted_address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- POI Tables
 CREATE TABLE IF NOT EXISTS pois (
     id SERIAL PRIMARY KEY,
@@ -55,6 +66,7 @@ CREATE TABLE IF NOT EXISTS pois (
     rating DECIMAL(3, 2),
     address TEXT,
     cluster_id VARCHAR(50),
+    city_id INTEGER REFERENCES cities(id) ON DELETE SET NULL,
     ingestion_date DATE NOT NULL DEFAULT CURRENT_DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -92,8 +104,10 @@ CREATE TABLE IF NOT EXISTS poi_reviews (
     UNIQUE(poi_id, author_name, time)
 );
 
+CREATE INDEX IF NOT EXISTS idx_cities_name ON cities(name);
 CREATE INDEX IF NOT EXISTS idx_pois_destination ON pois(destination_name, destination_lat, destination_lng);
 CREATE INDEX IF NOT EXISTS idx_pois_cluster_id ON pois(cluster_id);
+CREATE INDEX IF NOT EXISTS idx_pois_city_id ON pois(city_id);
 CREATE INDEX IF NOT EXISTS idx_pois_source ON pois(source, source_id);
 CREATE INDEX IF NOT EXISTS idx_pois_location ON pois(lat, lng);
 CREATE INDEX IF NOT EXISTS idx_pois_ingestion_date ON pois(ingestion_date);

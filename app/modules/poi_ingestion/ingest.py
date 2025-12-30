@@ -5,226 +5,255 @@ import aiohttp
 import json
 import logging
 from datetime import date
+from typing import List, Dict, Tuple, Optional
 from app.helpers.db_executor import query_executor
 from app.config.database import db_config
+from app.config.settings import settings
 
-from google_places import fetch_google_places
-from foursquare import fetch_foursquare
-from tripadvisor import fetch_tripadvisor
 from normalizer import normalize
 from poi_cluster_engine import cluster_pois
 
 logger = logging.getLogger(__name__)
 
+# Grid size in degrees (approximately 1km = 0.009 degrees)
+DEFAULT_GRID_SIZE = 0.009  # ~1km grid
+SEARCH_RADIUS_METERS = 1000  # 1km radius for searchNearby
 
-async def ingest_destination(name, lat, lng, ingestion_date=None):
+
+async def fetch_city_boundaries(session: aiohttp.ClientSession, city_name: str) -> Optional[Dict]:
     """
-    Ingest POIs for a destination and store in PostgreSQL with distance-based clustering.
+    Fetch city boundaries using Google Geocoding API.
+    
+    Returns:
+        Dict with 'bounds' (northeast, southwest) and 'location' (lat, lng) or None
+    """
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        "address": city_name,
+        "key": settings.GOOGLE_PLACES_API_KEY
+    }
+    
+    try:
+        async with session.get(url, params=params) as resp:
+            data = await resp.json()
+            
+            if data.get("status") != "OK" or not data.get("results"):
+                logger.error(f"Geocoding failed for {city_name}: {data.get('status')}")
+                return None
+            
+            result = data["results"][0]
+            geometry = result.get("geometry", {})
+            bounds = geometry.get("bounds")
+            
+            if not bounds:
+                # Fallback to viewport if bounds not available
+                bounds = geometry.get("viewport", {})
+            
+            if not bounds:
+                logger.error(f"No bounds found for {city_name}")
+                return None
+            
+            location = geometry.get("location", {})
+            
+            return {
+                "bounds": {
+                    "northeast": {
+                        "lat": bounds["northeast"]["lat"],
+                        "lng": bounds["northeast"]["lng"]
+                    },
+                    "southwest": {
+                        "lat": bounds["southwest"]["lat"],
+                        "lng": bounds["southwest"]["lng"]
+                    }
+                },
+                "location": {
+                    "lat": location.get("lat"),
+                    "lng": location.get("lng")
+                },
+                "formatted_address": result.get("formatted_address", city_name)
+            }
+    except Exception as e:
+        logger.error(f"Error fetching city boundaries for {city_name}: {e}")
+        return None
+
+
+def point_inside_city_boundary(lat: float, lng: float, bounds: Dict) -> bool:
+    """
+    Check if a point is inside city boundary using bounds.
     
     Args:
-        name: Destination name
-        lat: Destination latitude
-        lng: Destination longitude
-        ingestion_date: Date of ingestion (defaults to today). Used for monthly tracking.
+        lat: Latitude of the point
+        lng: Longitude of the point
+        bounds: Dict with 'northeast' and 'southwest' keys
+        
+    Returns:
+        True if point is inside boundary, False otherwise
     """
-    if ingestion_date is None:
-        ingestion_date = date.today()
+    ne = bounds["northeast"]
+    sw = bounds["southwest"]
     
-    # Ensure database is connected
-    # if not db_config._initialized:
-    #     await db_config.connect()
-    
-    logger.info(f"Starting ingestion for destination: {name} ({lat}, {lng}) on {ingestion_date}")
-    
-    async with aiohttp.ClientSession() as session:
-        print(f"\n🔍 Fetching Google Places for {name}...")
-        google_pois = await fetch_google_places(session, name, lat, lng)
+    return (sw["lat"] <= lat <= ne["lat"] and 
+            sw["lng"] <= lng <= ne["lng"])
 
-        print(f"🔍 Fetching Foursquare for {name}...")
-        # foursquare_pois = await fetch_foursquare(session, lat, lng)
-        foursquare_pois = []
 
-        print(f"🔍 Fetching TripAdvisor for {name}...")
-        tripadvisor_pois = await fetch_tripadvisor(session, lat, lng, location_name=name)
+def generate_grid_points(bounds: Dict, grid_size: float = DEFAULT_GRID_SIZE) -> List[Tuple[float, float]]:
+    """
+    Generate grid points within city boundaries.
+    
+    Args:
+        bounds: Dict with 'northeast' and 'southwest' keys
+        grid_size: Grid step size in degrees (default ~1km)
         
-        all_raw = google_pois + foursquare_pois + tripadvisor_pois
-        print(f"📦 Total raw POIs fetched: {len(all_raw)}")
+    Returns:
+        List of (lat, lng) tuples
+    """
+    ne = bounds["northeast"]
+    sw = bounds["southwest"]
+    
+    grid_points = []
+    
+    # Iterate from south to north
+    lat = sw["lat"]
+    while lat <= ne["lat"]:
+        # Iterate from west to east
+        lng = sw["lng"]
+        while lng <= ne["lng"]:
+            if point_inside_city_boundary(lat, lng, bounds):
+                grid_points.append((lat, lng))
+            lng += grid_size
+        lat += grid_size
 
-        if not all_raw:
-            print(f"⚠️ No POIs found for {name}")
-            return
+    return grid_points
 
-        # Normalize POIs
-        normalized = [normalize(p) for p in all_raw]
-        print(f"✅ Normalized {len(normalized)} POIs")
 
-        # Prepare POIs for clustering (need lat/lng)
-        pois_for_clustering = [
-            {
-                "lat": p["poi"]["lat"],
-                "lng": p["poi"]["lng"],
-                "name": p["poi"]["name"],
-                "poi_uuid": p["poi"]["poi_uuid"]  # Use UUID for mapping
+async def fetch_pois_search_nearby(session: aiohttp.ClientSession, lat: float, lng: float) -> List[Dict]:
+    """
+    Fetch POIs using Google Places API searchNearby endpoint.
+    
+    Args:
+        session: aiohttp session
+        lat: Latitude
+        lng: Longitude
+        
+    Returns:
+        List of POI dictionaries
+    """
+    url = "https://places.googleapis.com/v1/places:searchNearby"
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY,
+        "X-Goog-FieldMask": "places.id,places.displayName,places.location,places.rating,places.formattedAddress,places.regularOpeningHours,places.types,places.photos,places.userRatingCount"
+    }
+    
+    payload = {
+        "includedTypes": [
+            "tourist_attraction",
+            "restaurant",
+            "museum",
+            "park",
+            "shopping_mall",
+            "amusement_park",
+            "zoo",
+            "aquarium",
+            "art_gallery",
+            "church",
+            "hindu_temple",
+            "mosque",
+            "synagogue",
+            "stadium",
+            "casino",
+            "night_club",
+            "bar",
+            "cafe"
+        ],
+        "maxResultCount": 20,
+        "locationRestriction": {
+            "circle": {
+                "center": {
+                    "latitude": lat,
+                    "longitude": lng
+                },
+                "radius": SEARCH_RADIUS_METERS
             }
-            for p in normalized
-        ]
-
-        # Cluster POIs based on distance (no num_days parameter)
-        print(f"🔗 Clustering {len(pois_for_clustering)} POIs based on geographic distance...")
-        clusters = cluster_pois(pois_for_clustering)
-        print(f"✅ Created {len(clusters)} distance-based clusters")
-
-        # Create cluster_id mapping using poi_uuid
-        # cluster_id is now a string like "cluster_1", "cluster_2", etc.
-        poi_to_cluster = {}
-        for cluster in clusters:
-            cluster_id = cluster["cluster_id"]  # e.g., "cluster_1"
-            for poi in cluster["pois"]:
-                poi_uuid = poi["poi_uuid"]
-                poi_to_cluster[poi_uuid] = cluster_id
-        print("poi_to_cluster")
-        print(poi_to_cluster)
-
-        # Store in database with transaction
-        inserted_count = 0
-        updated_count = 0
-        
-        # async with query_executor.transaction() as conn:
-        for norm_data in normalized:
-            poi_data = norm_data["poi"]
-            details_data = norm_data["details"]
+        }
+    }
+    
+    try:
+        async with session.post(url, headers=headers, json=payload) as resp:
+            if resp.status != 200:
+                error_text = await resp.text()
+                logger.warning(f"searchNearby API error for ({lat}, {lng}): {resp.status} - {error_text}")
+                return []
             
-            # Get cluster_id for this POI using UUID
-            cluster_id = poi_to_cluster.get(poi_data["poi_uuid"], None)
+            data = await resp.json()
+            places = data.get("places", [])
             
-            # Check if POI already exists
-            existing_poi_query = """
-                SELECT id FROM pois 
-                WHERE source = $1 AND source_id = $2
-            """
-            existing_poi = await conn.fetchrow(
-                existing_poi_query,
-                poi_data["source"],
-                poi_data["source_id"]
-            )
-            
-            is_new = existing_poi is None
-            
-            # Insert or update into pois table
-            # On conflict, update existing POI with new data and ingestion_date
-            poi_insert_query = """
-                INSERT INTO pois (
-                    destination_name, destination_lat, destination_lng,
-                    poi_uuid, source, source_id, name, lat, lng,
-                    rating, address, cluster_id, ingestion_date
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                ON CONFLICT (source, source_id) DO UPDATE SET
-                    destination_name = EXCLUDED.destination_name,
-                    destination_lat = EXCLUDED.destination_lat,
-                    destination_lng = EXCLUDED.destination_lng,
-                    name = EXCLUDED.name,
-                    lat = EXCLUDED.lat,
-                    lng = EXCLUDED.lng,
-                    rating = EXCLUDED.rating,
-                    address = EXCLUDED.address,
-                    cluster_id = EXCLUDED.cluster_id,
-                    ingestion_date = EXCLUDED.ingestion_date,
-                    updated_at = CURRENT_TIMESTAMP
-                RETURNING id
-            """
-            
-            try:
-                poi_id = await conn.fetchval(
-                    poi_insert_query,
-                    name,  # destination_name
-                    float(lat),  # destination_lat
-                    float(lng),  # destination_lng
-                    poi_data["poi_uuid"],  # poi_uuid
-                    poi_data["source"],  # source
-                    poi_data["source_id"],  # source_id
-                    poi_data["name"],  # name
-                    poi_data["lat"],  # lat
-                    poi_data["lng"],  # lng
-                    poi_data["rating"],  # rating
-                    poi_data["address"],  # address
-                    cluster_id,  # cluster_id
-                    ingestion_date  # ingestion_date
-                )
+            # Transform to our format
+            pois = []
+            for place in places:
+                location = place.get("location", {})
+                display_name = place.get("displayName", {})
+                opening_hours = place.get("regularOpeningHours", {})
                 
-                if poi_id:
-                    if is_new:
-                        inserted_count += 1
-                    else:
-                        updated_count += 1
-                    
-                    # Insert or update into poi_details table
-                    details_insert_query = """
-                        INSERT INTO poi_details (
-                            poi_id, categories, opening_hours,
-                            duration_minutes, best_time, photos, user_ratings_total
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-                        ON CONFLICT (poi_id) DO UPDATE SET
-                            categories = EXCLUDED.categories,
-                            opening_hours = EXCLUDED.opening_hours,
-                            duration_minutes = EXCLUDED.duration_minutes,
-                            best_time = EXCLUDED.best_time,
-                            photos = EXCLUDED.photos,
-                            user_ratings_total = EXCLUDED.user_ratings_total,
-                            updated_at = CURRENT_TIMESTAMP
-                    """
-                    
-                    await conn.execute(
-                        details_insert_query,
-                        poi_id,  # poi_id
-                        json.dumps(details_data["categories"]),  # categories
-                        json.dumps(details_data["opening_hours"]),  # opening_hours
-                        details_data["duration_minutes"],  # duration_minutes
-                        json.dumps(details_data["best_time"]),  # best_time
-                        json.dumps(details_data["photos"]),  # photos
-                        details_data["user_ratings_total"]  # user_ratings_total
-                    )
-            except Exception as e:
-                logger.error(f"⚠️ Error inserting/updating POI {poi_data.get('name', 'unknown')}: {e}")
-                continue
+                # Skip if no location data
+                if not location.get("latitude") or not location.get("longitude"):
+                    continue
+                
+                pois.append({
+                    "source": "google",
+                    "id": place.get("id"),
+                    "name": display_name.get("text", "") if isinstance(display_name, dict) else str(display_name) if display_name else "",
+                    "lat": location.get("latitude"),
+                    "lng": location.get("longitude"),
+                    "rating": place.get("rating"),
+                    "address": place.get("formattedAddress", ""),
+                    "opening_hours": opening_hours.get("weekdayDescriptions", []) if isinstance(opening_hours, dict) else [],
+                    "types": place.get("types", []),
+                    "photos": place.get("photos", []),
+                    "user_ratings_total": place.get("userRatingCount", 0),
+                    "reviews": []  # searchNearby doesn't return reviews
+                })
+            
+            return pois
+    except Exception as e:
+        logger.error(f"Error fetching POIs for ({lat}, {lng}): {e}")
+        return []
 
-        logger.info(
-            f"✅ Completed ingestion for {name}: "
-            f"Inserted {inserted_count} new POIs, "
-            f"Updated {updated_count} existing POIs, "
-            f"Total clusters: {len(clusters)}"
-        )
 
+
+
+async def get_or_create_city(city_name: str, lat: float, lng: float, formatted_address: str) -> int:
+    """
+    Get or create a city record in the database.
+    
+    Returns:
+        city_id (int)
+    """
+    query = "INSERT INTO cities (name, lat, lng, formatted_address, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) RETURNING id"
+    return await query_executor.fetch_val(query, city_name, lat, lng, formatted_address)
 
 async def main():
     """
-    Main function to ingest destinations.
-    This function can be called monthly to refresh POI data for all destinations.
+    Main function to ingest cities.
+    This function can be called monthly to refresh POI data for all cities.
     """
-    # Ensure database is connected
-    # if not db_config._initialized:
-    #     await db_config.connect()
-    
-    # List of destinations to ingest
-    # Format: (name, lat, lng)
-    destinations = [
-        # ("golden temple", 31.6200, 74.8765),  # name, lat, lng
-        # Add more destinations as needed
-        ("vadodara", 22.3072, 73.1812),
+    # List of cities to ingest (city names only)
+    cities = [
+        # "Amritsar",
+        "Vadodara",
+        # Add more cities as needed
     ]
 
     # Get current ingestion date (for monthly tracking)
     ingestion_date = date.today()
     logger.info(f"Starting monthly ingestion process on {ingestion_date}")
-    logger.info(f"Processing {len(destinations)} destination(s)")
+    logger.info(f"Processing {len(cities)} city/cities")
 
-    # Process all destinations concurrently
-    coros = [ingest_destination(name, lat, lng, ingestion_date) for name, lat, lng in destinations]
+    # Process all cities concurrently
+    coros = [ingest_destination(city_name, ingestion_date) for city_name in cities]
     await asyncio.gather(*coros)
     
     logger.info("✅ Monthly ingestion process completed")
-    
-    # Note: Don't disconnect here if using connection pooling
-    # The connection pool will be managed by the application lifecycle
 
 
 if __name__ == "__main__":

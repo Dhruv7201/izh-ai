@@ -38,7 +38,6 @@ async def fetch_google_places(session, destination, lat, lng, radius=8000):
     for r in all_results:
         details = await fetch_details(session, r["place_id"])
         print(details)
-        exit()
         if details:
             enriched.append(details)
 
